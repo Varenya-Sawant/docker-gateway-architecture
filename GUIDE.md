@@ -35,9 +35,11 @@ Networks:
 ## Folder Structure
 
 ```
-project-atlas/
+atlas/
 ├── docker-compose.yml          <- run everything with one command
+├── docker-compose.prod.yml     <- production Compose config
 ├── GUIDE.md                    <- this file
+├── README.md                   <- project overview and setup guide
 │
 ├── nginx-gateway/
 │   ├── Dockerfile
@@ -58,10 +60,9 @@ project-atlas/
 │   ├── package.json
 │   └── app.js
 │
-└── scripts/
-    ├── verify.sh               <- automated test suite
-    ├── diagnose.sh             <- full system dump for debugging
-    └── chaos.sh                <- break things on purpose
+├── chaos.sh                    <- break/fix scenarios for learning
+├── diagnose.sh                 <- full system dump for debugging
+└── verify.sh                   <- automated test suite
 ```
 
 ---
@@ -77,7 +78,7 @@ project-atlas/
 ## STEP 1: Start the Project
 
 ```bash
-# From the project-atlas/ directory
+# From the atlas/ directory
 docker compose up --build
 
 # Or run detached (in background)
@@ -100,14 +101,14 @@ Container admin-service     Started
 
 ```bash
 # Run the automated test suite
-bash scripts/verify.sh
+bash verify.sh
 ```
 
 Expected output: all PASS, 0 FAIL.
 
 If something fails, run:
 ```bash
-bash scripts/diagnose.sh
+bash diagnose.sh
 ```
 
 ---
@@ -130,9 +131,6 @@ curl http://localhost/admin
 
 # Admin health (JSON)
 curl http://localhost/admin/health
-
-# Nginx live stats
-curl http://localhost/nginx-status
 ```
 
 All traffic goes through port **80** → nginx → the appropriate internal service.
@@ -506,7 +504,7 @@ The routing table inside nginx is what bridges the two networks.
 ### Full verification
 
 ```bash
-bash scripts/verify.sh
+bash verify.sh
 ```
 
 ### Manual verification — understand each step
@@ -599,7 +597,7 @@ Run each chaos scenario, observe the failure, then fix it.
 
 ```bash
 # SCENARIO 1: Disconnect api-service from backend-net
-bash scripts/chaos.sh break 1
+bash chaos.sh break 1
 
 # Observe:
 curl http://localhost/api/users          # 502 Bad Gateway
@@ -607,11 +605,11 @@ docker logs nginx-gateway --tail 5      # connect() failed
 docker exec nginx-gateway nslookup api-service  # may resolve but connect fails
 
 # Fix:
-bash scripts/chaos.sh fix 1
+bash chaos.sh fix 1
 
 
 # SCENARIO 2: Stop api-service container
-bash scripts/chaos.sh break 2
+bash chaos.sh break 2
 
 # Observe:
 curl http://localhost/api/users          # 502
@@ -619,11 +617,11 @@ docker exec nginx-gateway nslookup api-service  # NXDOMAIN (container gone, no D
 docker exec nginx-gateway wget http://api-service:5000/ --timeout=2  # fails
 
 # Fix:
-bash scripts/chaos.sh fix 2
+bash chaos.sh fix 2
 
 
 # SCENARIO 3: Rename api-service (breaks DNS)
-bash scripts/chaos.sh break 3
+bash chaos.sh break 3
 
 # Observe:
 curl http://localhost/api/users          # 502
@@ -631,11 +629,11 @@ docker exec nginx-gateway nslookup api-service       # NXDOMAIN
 docker exec nginx-gateway nslookup api-service-renamed  # resolves, but nginx.conf says api-service
 
 # Fix:
-bash scripts/chaos.sh fix 3
+bash chaos.sh fix 3
 
 
 # SCENARIO 4: Break nginx config
-bash scripts/chaos.sh break 4
+bash chaos.sh break 4
 
 # Observe:
 docker exec nginx-gateway nginx -t      # config test fails
@@ -644,7 +642,7 @@ docker exec nginx-gateway nginx -s reload  # fails
 curl http://localhost/  # may still work (old worker processes)
 
 # Fix:
-bash scripts/chaos.sh fix 4
+bash chaos.sh fix 4
 ```
 
 ### What each failure teaches you
@@ -863,7 +861,7 @@ Run through every item. If you can check it off AND explain why, you understand 
 
 ```bash
 # Run the full automated validation
-bash scripts/verify.sh
+bash verify.sh
 ```
 
 ### Manual checklist
@@ -1057,14 +1055,14 @@ A:
 docker compose up --build -d
 
 # VERIFY
-bash scripts/verify.sh
+bash verify.sh
 
 # DIAGNOSE
-bash scripts/diagnose.sh
+bash diagnose.sh
 
 # CHAOS
-bash scripts/chaos.sh break 1
-bash scripts/chaos.sh fix 1
+bash chaos.sh break 1
+bash chaos.sh fix 1
 
 # LOGS
 docker logs nginx-gateway -f
