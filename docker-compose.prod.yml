@@ -1,0 +1,257 @@
+version: '3.9'
+
+services:
+  # ===== NGINX GATEWAY (Reverse Proxy & Entry Point) =====
+  nginx-gateway:
+    build:
+      context: ./nginx-gateway
+      dockerfile: Dockerfile
+    container_name: atlas-nginx-prod
+    restart: unless-stopped
+    
+    # ===== NETWORKING =====
+    ports:
+      - "80:80"
+      - "443:443"  # Ready for HTTPS (requires SSL certs)
+    networks:
+      - frontend-net
+      - backend-net
+    
+    # ===== RESOURCE LIMITS =====
+    mem_limit: 128m
+    memswap_limit: 256m
+    cpus: '0.5'
+    cpu_shares: 1024
+    pids_limit: 50
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    
+    # ===== HEALTH CHECK =====
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # ===== SECURITY =====
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    user: "101:101"  # www-data UID:GID
+    read_only: true
+    tmpfs:
+      - /var/run
+      - /var/cache/nginx
+      - /tmp
+    
+    # ===== LOGGING =====
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "service=nginx-gateway"
+
+  # ===== FRONTEND SERVICE (UI) =====
+  frontend-service:
+    build:
+      context: ./frontend-service
+      dockerfile: Dockerfile
+    container_name: atlas-frontend-prod
+    restart: unless-stopped
+    
+    networks:
+      - frontend-net
+    expose:
+      - "3000"
+    
+    # ===== RESOURCE LIMITS =====
+    mem_limit: 256m
+    memswap_limit: 512m
+    cpus: '1.0'
+    cpu_shares: 1024
+    pids_limit: 100
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 4096
+    
+    # ===== HEALTH CHECK =====
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    
+    # ===== SECURITY =====
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    user: "1000:1000"  # Unprivileged user
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node
+    environment:
+      NODE_ENV: production
+    
+    # ===== LOGGING =====
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=frontend-service"
+
+  # ===== API SERVICE =====
+  api-service:
+    build:
+      context: ./api-service
+      dockerfile: Dockerfile
+    container_name: atlas-api-prod
+    restart: unless-stopped
+    
+    networks:
+      - backend-net
+    expose:
+      - "5000"
+    
+    # ===== RESOURCE LIMITS =====
+    mem_limit: 512m
+    memswap_limit: 1024m
+    cpus: '1.5'
+    cpu_shares: 1536
+    pids_limit: 100
+    ulimits:
+      nofile:
+        soft: 2048
+        hard: 4096
+    
+    # ===== HEALTH CHECK =====
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    
+    # ===== SECURITY =====
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    user: "1000:1000"  # Unprivileged user
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    
+    # ===== LOGGING =====
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+        labels: "service=api-service"
+
+  # ===== ADMIN SERVICE =====
+  admin-service:
+    build:
+      context: ./admin-service
+      dockerfile: Dockerfile
+    container_name: atlas-admin-prod
+    restart: unless-stopped
+    
+    networks:
+      - backend-net
+    expose:
+      - "6000"
+    
+    # ===== RESOURCE LIMITS =====
+    mem_limit: 256m
+    memswap_limit: 512m
+    cpus: '0.5'
+    cpu_shares: 512
+    pids_limit: 50
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    
+    # ===== HEALTH CHECK =====
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    
+    # ===== SECURITY =====
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    user: "1000:1000"  # Unprivileged user
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/node
+    environment:
+      NODE_ENV: production
+    
+    # ===== LOGGING =====
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=admin-service"
+
+# ===== NETWORKS (PRODUCTION SECURITY) =====
+networks:
+  # Frontend network - DMZ-like tier
+  frontend-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-frontend
+      # Disable inter-container communication within network (optional hardening)
+      com.docker.network.bridge.enable_icc: "true"  # Allow nginx ↔ frontend
+
+  # Backend network - Internal tier (isolated)
+  backend-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-backend
+      com.docker.network.bridge.enable_icc: "true"  # Allow inter-service comms
+      com.docker.network.bridge.enable_ip_masquerade: "false"  # No IP masq
+    internal: true  # No outbound internet access
+    ipam:
+      config:
+        - subnet: 10.0.2.0/24
+
+# ===== VOLUMES (RESERVED FOR DATABASE/DATA) =====
+# volumes:
+  # Example for future DB integration:
+  # postgres-data:
+  #   driver: local
+  #   driver_opts:
+  #     type: tmpfs
+  #     device: tmpfs
+  #     o: size=512m

@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+  frontend-service:
+    build: ./frontend-service
+    restart: unless-stopped
+    networks:
+      - frontend-net
+    expose:
+      - "3000"
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+
+  api-service:
+    build: ./api-service
+    restart: unless-stopped
+    networks:
+      - backend-net
+    expose:
+      - "5000"
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+
+  admin-service:
+    build: ./admin-service
+    restart: unless-stopped
+    networks:
+      - backend-net
+    expose:
+      - "6000"
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+
+  nginx-gateway:
+    build: ./nginx-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - frontend-net
+      - backend-net
+    depends_on:
+      - frontend-service
+      - api-service
+      - admin-service
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+    internal: true
