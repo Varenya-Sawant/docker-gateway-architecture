@@ -199,7 +199,7 @@ Nginx ↔ Admin-service
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Docker Engine 20.10+
