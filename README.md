@@ -4,7 +4,7 @@ A production-ready microservices learning project demonstrating **Docker Compose
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 1. [Project Overview](#project-overview)
 2. [Architecture](#architecture)
@@ -18,7 +18,7 @@ A production-ready microservices learning project demonstrating **Docker Compose
 
 ---
 
-## 🎯 Project Overview
+##  Project Overview
 
 **Atlas** is a containerized microservices system designed to teach:
 - Microservices architecture patterns
@@ -32,7 +32,7 @@ The project consists of three backend services (API, Admin, Frontend) behind a s
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Logical Diagram
 
@@ -71,7 +71,7 @@ The project consists of three backend services (API, Admin, Frontend) behind a s
 
 ---
 
-## 🚀 Services
+##  Services
 
 ### 1. **Nginx Gateway** (Port 80)
 - **Role**: Reverse proxy and single entry point
@@ -110,7 +110,7 @@ The project consists of three backend services (API, Admin, Frontend) behind a s
 
 ---
 
-## 🔒 Security Features
+##  Security Features
 
 ### Container-Level Security
 
@@ -123,9 +123,9 @@ cap_drop:
 ```
 
 **Impact**: Backend containers cannot:
-- ✅ Ping external hosts (NO NET_RAW)
-- ✅ Modify network settings (NO NET_ADMIN)
-- ✅ Escalate privileges (no-new-privileges)
+-  Ping external hosts (NO NET_RAW)
+-  Modify network settings (NO NET_ADMIN)
+-  Escalate privileges (no-new-privileges)
 
 **Test verified**: `ping 1.1.1.1` from backend container returns:
 ```
@@ -174,7 +174,7 @@ Nginx ↔ Admin-service
 
 ---
 
-## 🌐 Network Segmentation
+##  Network Segmentation
 
 ### Why This Matters
 
@@ -241,7 +241,7 @@ docker-compose down
 
 ---
 
-## 📡 API Endpoints
+##  API Endpoints
 
 ### Via Nginx Gateway (Recommended)
 
@@ -277,7 +277,7 @@ Response: {"status":"ok","service":"admin-service","uptime":"12.3s"}
 
 ### Direct Access (Development Only)
 
-⚠️ Direct access only works from host machine; containers cannot access each other's ports directly.
+ Direct access only works from host machine; containers cannot access each other's ports directly.
 
 ```bash
 # From host machine
@@ -288,7 +288,7 @@ curl http://localhost:6000    # Admin
 
 ---
 
-## ✅ Testing & Verification
+##  Testing & Verification
 
 ### 1. Verify Containers Stay Running
 
@@ -360,7 +360,7 @@ docker network inspect atlas_backend-net
 
 ---
 
-## 📚 Learning Points
+##  Learning Points
 
 ### What You've Learned
 
@@ -411,7 +411,7 @@ docker network inspect atlas_backend-net
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 atlas/
@@ -440,7 +440,7 @@ atlas/
 
 ---
 
-## 🛠️ Troubleshooting
+##  Troubleshooting
 
 ### Containers Keep Restarting
 
@@ -494,12 +494,11 @@ docker stop <container-id>
 ---
 
 
-
 Created as a learning project for understanding microservices, Docker, and network security.
 
 ---
 
-## 📖 References
+##  References
 
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Nginx Reverse Proxy Guide](https://nginx.org/en/docs/http/ngx_http_proxy_module.html)
